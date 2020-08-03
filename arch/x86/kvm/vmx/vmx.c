@@ -2424,7 +2424,8 @@ static __init int setup_vmcs_config(struct vmcs_config *vmcs_conf,
 	      CPU_BASED_MWAIT_EXITING |
 	      CPU_BASED_MONITOR_EXITING |
 	      CPU_BASED_INVLPG_EXITING |
-	      CPU_BASED_RDPMC_EXITING;
+	      CPU_BASED_RDPMC_EXITING |
+	      CPU_BASED_RDTSC_EXITING;
 
 	opt = CPU_BASED_TPR_SHADOW |
 	      CPU_BASED_USE_MSR_BITMAPS |
@@ -5666,6 +5667,14 @@ static int handle_encls(struct kvm_vcpu *vcpu)
  * may resume.  Otherwise they set the kvm_run parameter to indicate what needs
  * to be done to userspace and return 0.
  */
+static int handle_rdtsc(struct kvm_vcpu *vcpu) 
+{     
+	printk("[vmkernel] handling fake rdtsc from cpl %i\n", vmx_get_cpl(vcpu)); 
+	uint64_t data;     
+	data = 123;          
+	vcpu->arch.regs[VCPU_REGS_RAX] = data & -1u;     vcpu->arch.regs[VCPU_REGS_RDX] = (data >> 32) & -1u;          skip_emulated_instruction(vcpu); 
+	return 1; 
+}
 static int (*kvm_vmx_exit_handlers[])(struct kvm_vcpu *vcpu) = {
 	[EXIT_REASON_EXCEPTION_NMI]           = handle_exception_nmi,
 	[EXIT_REASON_EXTERNAL_INTERRUPT]      = handle_external_interrupt,
@@ -5717,6 +5726,7 @@ static int (*kvm_vmx_exit_handlers[])(struct kvm_vcpu *vcpu) = {
 	[EXIT_REASON_VMFUNC]		      = handle_vmx_instruction,
 	[EXIT_REASON_PREEMPTION_TIMER]	      = handle_preemption_timer,
 	[EXIT_REASON_ENCLS]		      = handle_encls,
+	[EXIT_REASON_RDTSC]                   = handle_rdtsc,
 };
 
 static const int kvm_vmx_max_exit_handlers =
